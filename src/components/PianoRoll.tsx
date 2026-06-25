@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { FlatScore } from "../model/flatten";
 import { makeLayout } from "../grid/layout";
-import { buildVoiceColorMap, drawScene, type SceneState } from "../grid/render";
+import { buildVoiceColorMap, drawScene, drawKeyboard, KEYBOARD_WIDTH, type SceneState } from "../grid/render";
 
 interface Props {
   flat: FlatScore;
@@ -17,31 +17,39 @@ interface Props {
 export function PianoRoll({ flat, getState }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const kbRef = useRef<HTMLCanvasElement>(null);
 
   const layout = useMemo(() => makeLayout(flat), [flat]);
   const colors = useMemo(() => buildVoiceColorMap(flat.voiceKeys), [flat.voiceKeys]);
 
-  // Size the canvas for the device pixel ratio.
+  // Size both canvases for the device pixel ratio.
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.ceil(layout.contentWidth * dpr);
-    canvas.height = Math.ceil(layout.contentHeight * dpr);
-    canvas.style.width = `${layout.contentWidth}px`;
-    canvas.style.height = `${layout.contentHeight}px`;
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.width = Math.ceil(layout.contentWidth * dpr);
+      canvas.height = Math.ceil(layout.contentHeight * dpr);
+      canvas.style.width = `${layout.contentWidth}px`;
+      canvas.style.height = `${layout.contentHeight}px`;
+    }
+    const kb = kbRef.current;
+    if (kb) {
+      kb.width = Math.ceil(KEYBOARD_WIDTH * dpr);
+      kb.height = Math.ceil(layout.contentHeight * dpr);
+      kb.style.width = `${KEYBOARD_WIDTH}px`;
+      kb.style.height = `${layout.contentHeight}px`;
+    }
   }, [layout]);
 
   // Continuous render loop.
   useEffect(() => {
     let raf = 0;
     const loop = () => {
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext("2d");
+      const dpr = window.devicePixelRatio || 1;
+      const ctx = canvasRef.current?.getContext("2d");
+      const state = getState();
       if (ctx) {
-        const dpr = window.devicePixelRatio || 1;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        const state = getState();
         drawScene(ctx, layout, flat, colors, state);
 
         // Keep the playhead about a third from the left edge.
@@ -51,6 +59,17 @@ export function PianoRoll({ flat, getState }: Props) {
           scroller.scrollLeft = Math.max(0, target);
         }
       }
+
+      // The pinned keyboard: light up held keys, stay vertically aligned.
+      const kctx = kbRef.current?.getContext("2d");
+      if (kctx) {
+        kctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        drawKeyboard(kctx, layout, state.heldMidi);
+      }
+      if (kbRef.current && scrollRef.current) {
+        kbRef.current.style.transform = `translateY(${-scrollRef.current.scrollTop}px)`;
+      }
+
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -58,8 +77,13 @@ export function PianoRoll({ flat, getState }: Props) {
   }, [layout, flat, colors, getState]);
 
   return (
-    <div className="pianoroll-scroll" ref={scrollRef}>
-      <canvas ref={canvasRef} className="pianoroll-canvas" />
+    <div className="pianoroll">
+      <div className="pianoroll-scroll" ref={scrollRef}>
+        <canvas ref={canvasRef} className="pianoroll-canvas" />
+      </div>
+      <div className="keyboard-pane" style={{ width: KEYBOARD_WIDTH }}>
+        <canvas ref={kbRef} className="keyboard-canvas" />
+      </div>
     </div>
   );
 }

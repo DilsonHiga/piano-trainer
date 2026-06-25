@@ -180,13 +180,37 @@ body {
   overflow: hidden;
 }
 
+.pianoroll {
+  display: flex;
+  height: 100%;
+  min-width: 0;
+}
+
 .pianoroll-scroll {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   height: 100%;
   overflow: auto;
 }
 
 .pianoroll-canvas {
+  display: block;
+}
+
+/* Keyboard pinned to the right, always visible. */
+.keyboard-pane {
+  flex: 0 0 auto;
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  border-left: 1px solid var(--border);
+  background: #0c0f14;
+}
+
+.keyboard-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
   display: block;
 }
 

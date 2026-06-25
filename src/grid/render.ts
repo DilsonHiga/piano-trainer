@@ -175,6 +175,64 @@ export function drawScene(
   if (state.playheadTick != null) drawPlayhead(ctx, layout, state.playheadTick);
 }
 
+export const KEYBOARD_WIDTH = 72;
+
+const KB = {
+  bg: "#0c0f14",
+  white: "#e9edf2",
+  whiteEdge: "#b9c1cc",
+  black: "#1b2027",
+  label: "#5a6675",
+};
+
+/**
+ * Draw a vertical piano keyboard (one key per pitch row, aligned with the grid)
+ * into a `KEYBOARD_WIDTH`-wide canvas, lighting up `highlight` keys. Pinned
+ * beside the scrollable roll so it stays visible.
+ */
+export function drawKeyboard(
+  ctx: CanvasRenderingContext2D,
+  layout: GridLayout,
+  highlight: Set<number>,
+  hiliteColor = COLORS.gutterHeld,
+): void {
+  const { minMidi, maxMidi, rowH } = layout;
+  const w = KEYBOARD_WIDTH;
+
+  ctx.fillStyle = KB.bg;
+  ctx.fillRect(0, 0, w, layout.contentHeight);
+
+  for (let midi = minMidi; midi <= maxMidi; midi++) {
+    if (isBlack(midi)) continue;
+    const y = layout.midiToY(midi);
+    ctx.fillStyle = highlight.has(midi) ? hiliteColor : KB.white;
+    ctx.fillRect(0, y, w, rowH);
+    ctx.strokeStyle = KB.whiteEdge;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, y + rowH - 0.5);
+    ctx.lineTo(w, y + rowH - 0.5);
+    ctx.stroke();
+  }
+
+  const blackW = Math.round(w * 0.62);
+  for (let midi = minMidi; midi <= maxMidi; midi++) {
+    if (!isBlack(midi)) continue;
+    const y = layout.midiToY(midi);
+    ctx.fillStyle = highlight.has(midi) ? hiliteColor : KB.black;
+    ctx.fillRect(0, y + 1, blackW, rowH - 2);
+  }
+
+  ctx.font = "10px ui-monospace, monospace";
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "right";
+  ctx.fillStyle = KB.label;
+  for (let midi = minMidi; midi <= maxMidi; midi++) {
+    if (((midi % 12) + 12) % 12 === 0) ctx.fillText(midiToPitch(midi), w - 5, layout.midiToY(midi) + rowH / 2);
+  }
+  ctx.textAlign = "left";
+}
+
 function roundRect(
   ctx: CanvasRenderingContext2D,
   x: number,
