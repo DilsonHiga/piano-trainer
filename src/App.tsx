@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseScore, type Issue } from "music-json";
 import { flattenScore, type FlatScore } from "./model/flatten";
-import { buildSteps, stepSatisfied, type Step } from "./model/steps";
+import { buildSteps, chordMatched, type Step } from "./model/steps";
 import { Player } from "./audio/player";
 import { MidiManager, KeyboardInput, midiSupported, type MidiInputInfo } from "./midi/midi";
 import type { SceneState } from "./grid/render";
@@ -72,7 +72,7 @@ export default function App() {
       if (runningRef.current && modeRef.current === "wait") {
         const list = stepsRef.current;
         const step = list[stepRef.current];
-        if (step && stepSatisfied(step, pressedRef.current)) {
+        if (step && chordMatched(step, pressedRef.current, heldRef.current)) {
           const next = stepRef.current + 1;
           stepRef.current = next;
           pressedRef.current = new Set();

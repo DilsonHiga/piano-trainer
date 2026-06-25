@@ -27,7 +27,17 @@ export function buildSteps(flat: FlatScore): Step[] {
     .map(([tick, g]) => ({ tick, midis: [...g.midis], noteIds: g.ids }));
 }
 
-/** True when every required pitch of the step has been pressed. */
-export function stepSatisfied(step: Step, pressed: Set<number>): boolean {
-  return step.midis.every((m) => pressed.has(m));
+/** True when `set` contains every required pitch of the step. */
+export function stepSatisfied(step: Step, set: Set<number>): boolean {
+  return step.midis.every((m) => set.has(m));
+}
+
+/**
+ * Wait-mode match: the step is cleared only when all required keys are held at
+ * the *same time* (`held`), and each was (re)pressed during this step (`pressed`)
+ * — so a note carried over from the previous step, or an arpeggiated chord whose
+ * keys are never down together, does not advance.
+ */
+export function chordMatched(step: Step, pressed: Set<number>, held: Set<number>): boolean {
+  return stepSatisfied(step, pressed) && stepSatisfied(step, held);
 }
