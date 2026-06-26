@@ -9,6 +9,7 @@ import type { MidiInputInfo } from "../midi/midi";
 
 export type Mode = "play" | "wait";
 export type InputSource = "midi" | "keyboard";
+export type View = "roll" | "falling";
 
 interface Props {
   fileName: string | null;
@@ -29,6 +30,8 @@ interface Props {
   onConnect: () => void;
   onSelectDevice: (id: string) => void;
 
+  view: View;
+  onView: (v: View) => void;
   mode: Mode;
   onMode: (m: Mode) => void;
   tempoPct: number;
@@ -112,6 +115,16 @@ export function Toolbar(p: Props) {
         )}
 
         <span className="spacer" />
+
+        {/* View */}
+        <div className="seg">
+          <button className={p.view === "roll" ? "on" : ""} onClick={() => p.onView("roll")}>
+            Roll
+          </button>
+          <button className={p.view === "falling" ? "on" : ""} onClick={() => p.onView("falling")}>
+            Falling
+          </button>
+        </div>
 
         {/* Mode */}
         <div className="seg">

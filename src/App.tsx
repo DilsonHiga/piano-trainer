@@ -17,8 +17,9 @@ import { buildSteps, chordMatched, type Step } from "./model/steps";
 import { Player } from "./audio/player";
 import { MidiManager, KeyboardInput, midiSupported, type MidiInputInfo } from "./midi/midi";
 import type { SceneState } from "./grid/render";
-import { Toolbar, type Mode, type InputSource } from "./components/Toolbar";
+import { Toolbar, type Mode, type InputSource, type View } from "./components/Toolbar";
 import { PianoRoll } from "./components/PianoRoll";
+import { FallingNotes } from "./components/FallingNotes";
 import twinkleSample from "./samples/twinkle.music.json";
 
 export default function App() {
@@ -38,6 +39,7 @@ export default function App() {
   const [warnings, setWarnings] = useState<Issue[]>([]);
 
   const [mode, setMode] = useState<Mode>("play");
+  const [view, setView] = useState<View>("roll");
   const [inputSource, setInputSource] = useState<InputSource>(supported ? "midi" : "keyboard");
   const [tempoPct, setTempoPct] = useState(100);
   const [referenceOn, setReferenceOn] = useState(true);
@@ -209,6 +211,8 @@ export default function App() {
         deviceId={deviceId}
         onConnect={connect}
         onSelectDevice={selectDevice}
+        view={view}
+        onView={setView}
         mode={mode}
         onMode={changeMode}
         tempoPct={tempoPct}
@@ -230,7 +234,11 @@ export default function App() {
 
       <main className="stage">
         {flat ? (
-          <PianoRoll flat={flat} getState={getState} />
+          view === "falling" ? (
+            <FallingNotes flat={flat} getState={getState} />
+          ) : (
+            <PianoRoll flat={flat} getState={getState} />
+          )
         ) : (
           <div className="empty">
             <p>
