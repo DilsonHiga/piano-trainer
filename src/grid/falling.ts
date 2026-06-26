@@ -38,7 +38,11 @@ export interface FallingLayout {
   maxMidi: number;
   whiteW: number;
   pxPerTick: number;
+  /** Full key footprint — used to draw the keyboard. */
   keyGeom(midi: number): { x: number; w: number; black: boolean };
+  /** Falling-note lane: a white key's narrowed *upper edge* (trimmed where
+   * black keys cut into it); black keys are unchanged. */
+  noteGeom(midi: number): { x: number; w: number; black: boolean };
 }
 
 export function makeFallingLayout(flat: FlatScore, width: number, height: number): FallingLayout {
@@ -60,16 +64,26 @@ export function makeFallingLayout(flat: FlatScore, width: number, height: number
   const lookaheadTicks = flat.divisions * 8; // ~2 bars of 4/4
   const pxPerTick = hitLineY / lookaheadTicks;
 
+  const half = blackW / 2;
   const keyGeom = (midi: number) => {
     if (!isBlack(midi)) {
       const i = whiteIndex.get(midi) ?? 0;
       return { x: i * whiteW, w: whiteW, black: false };
     }
     const li = whiteIndex.get(midi - 1) ?? 0; // white key just below
-    return { x: (li + 1) * whiteW - blackW / 2, w: blackW, black: true };
+    return { x: (li + 1) * whiteW - half, w: blackW, black: true };
   };
 
-  return { width, height, hitLineY, keyboardH, minMidi, maxMidi, whiteW, pxPerTick, keyGeom };
+  // Falling-note lane: trim a white key's top by the black keys on either side.
+  const noteGeom = (midi: number) => {
+    const g = keyGeom(midi);
+    if (g.black) return g;
+    const leftCover = isBlack(midi - 1) ? half : 0;
+    const rightCover = isBlack(midi + 1) ? half : 0;
+    return { x: g.x + leftCover, w: g.w - leftCover - rightCover, black: false };
+  };
+
+  return { width, height, hitLineY, keyboardH, minMidi, maxMidi, whiteW, pxPerTick, keyGeom, noteGeom };
 }
 
 export function drawFalling(
@@ -108,7 +122,7 @@ export function drawFalling(
     const drawTop = Math.max(top, 0);
     if (drawBottom - drawTop < 1) continue;
 
-    const g = layout.keyGeom(note.midi);
+    const g = layout.noteGeom(note.midi);
     roundRect(ctx, g.x + 1, drawTop, Math.max(2, g.w - 2), drawBottom - drawTop, 3);
     ctx.fillStyle = colors.get(note.voiceKey) ?? VOICE_COLORS[0];
     ctx.fill();
