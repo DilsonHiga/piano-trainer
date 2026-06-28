@@ -50,6 +50,8 @@ export interface SceneState {
   playheadTick: number | null;
   heldMidi: Set<number>;
   targetIds: Set<string>;
+  /** Voices disabled in wait mode — drawn dimmed and never marked as targets. */
+  mutedVoices?: Set<string>;
 }
 
 function drawRows(ctx: CanvasRenderingContext2D, layout: GridLayout): void {
@@ -107,16 +109,19 @@ function drawNotes(
   notes: PlacedNote[],
   colors: Map<string, string>,
   targetIds: Set<string>,
+  mutedVoices?: Set<string>,
 ): void {
   const { rowH, colW, slotTicks } = layout;
   for (const note of notes) {
+    const muted = mutedVoices?.has(note.voiceKey) ?? false;
     const x = layout.tickToX(note.startTick);
     const w = Math.max(2, (note.durTick / slotTicks) * colW - 1);
     const y = layout.midiToY(note.midi);
     roundRect(ctx, x + 0.5, y + 0.5, w, rowH - 1, 3);
+    ctx.globalAlpha = muted ? 0.25 : 1;
     ctx.fillStyle = colors.get(note.voiceKey) ?? VOICE_COLORS[0];
     ctx.fill();
-    if (targetIds.has(note.id)) {
+    if (!muted && targetIds.has(note.id)) {
       ctx.strokeStyle = COLORS.target;
       ctx.lineWidth = 2.5;
     } else {
@@ -124,6 +129,7 @@ function drawNotes(
       ctx.lineWidth = 1;
     }
     ctx.stroke();
+    ctx.globalAlpha = 1;
   }
 }
 
@@ -170,7 +176,7 @@ export function drawScene(
   drawRows(ctx, layout);
   drawHeldBands(ctx, layout, state.heldMidi);
   drawGridLines(ctx, layout, flat);
-  drawNotes(ctx, layout, flat.notes, colors, state.targetIds);
+  drawNotes(ctx, layout, flat.notes, colors, state.targetIds, state.mutedVoices);
   drawGutter(ctx, layout, state.heldMidi);
   if (state.playheadTick != null) drawPlayhead(ctx, layout, state.playheadTick);
 }

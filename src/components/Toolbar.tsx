@@ -6,6 +6,7 @@
 import { useRef } from "react";
 import type { Issue } from "music-json";
 import type { MidiInputInfo } from "../midi/midi";
+import type { VoiceInfo } from "../model/flatten";
 
 export type Mode = "play" | "wait";
 export type InputSource = "midi" | "keyboard";
@@ -38,6 +39,11 @@ interface Props {
   onTempo: (pct: number) => void;
   referenceOn: boolean;
   onReference: (on: boolean) => void;
+
+  voices: VoiceInfo[];
+  voiceColors: Map<string, string>;
+  disabledVoices: Set<string>;
+  onToggleVoice: (key: string) => void;
 
   progress: { current: number; total: number } | null;
 }
@@ -154,6 +160,26 @@ export function Toolbar(p: Props) {
               Reference sound
             </label>
           </>
+        )}
+
+        {p.mode === "wait" && p.voices.length > 1 && (
+          <div className="voices">
+            <span className="voices-label">Voices</span>
+            {p.voices.map((v) => {
+              const on = !p.disabledVoices.has(v.key);
+              return (
+                <button
+                  key={v.key}
+                  className={`voice-chip ${on ? "on" : "off"}`}
+                  onClick={() => p.onToggleVoice(v.key)}
+                  title={on ? `Disable ${v.label}` : `Enable ${v.label}`}
+                >
+                  <span className="voice-dot" style={{ background: p.voiceColors.get(v.key) }} />
+                  {v.label}
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
     </header>

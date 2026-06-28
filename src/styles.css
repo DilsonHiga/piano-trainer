@@ -145,6 +145,46 @@ body {
   gap: 5px;
 }
 
+/* Per-voice enable/disable toggles (wait-for-correct mode) */
+.voices {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.voices-label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.voice-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #20262f;
+  font-size: 13px;
+}
+
+.voice-chip.off {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.voice-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.voice-chip.off .voice-dot {
+  filter: grayscale(1);
+}
+
 .badge {
   padding: 2px 8px;
   border-radius: 10px;

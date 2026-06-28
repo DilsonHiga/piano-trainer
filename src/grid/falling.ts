@@ -17,8 +17,8 @@ const BLACK_PCS = new Set([1, 3, 6, 8, 10]);
 const isBlack = (m: number) => BLACK_PCS.has(((m % 12) + 12) % 12);
 
 const COLORS = {
-  bg: "#0c0f14",
-  laneBlack: "#11151c",
+  bg: "#10151d",
+  laneBlack: "#080a0e",
   hitLine: "#ff4d4d",
   noteStroke: "rgba(0,0,0,0.45)",
   target: "#ffd60a",
@@ -38,11 +38,9 @@ export interface FallingLayout {
   maxMidi: number;
   whiteW: number;
   pxPerTick: number;
-  /** Full key footprint — used to draw the keyboard. */
+  /** Full key footprint — used both to draw the keyboard and as the falling
+   * note's lane, so notes span the whole key width. */
   keyGeom(midi: number): { x: number; w: number; black: boolean };
-  /** Falling-note lane: a white key's narrowed *upper edge* (trimmed where
-   * black keys cut into it); black keys are unchanged. */
-  noteGeom(midi: number): { x: number; w: number; black: boolean };
 }
 
 export function makeFallingLayout(flat: FlatScore, width: number, height: number): FallingLayout {
@@ -74,16 +72,7 @@ export function makeFallingLayout(flat: FlatScore, width: number, height: number
     return { x: (li + 1) * whiteW - half, w: blackW, black: true };
   };
 
-  // Falling-note lane: trim a white key's top by the black keys on either side.
-  const noteGeom = (midi: number) => {
-    const g = keyGeom(midi);
-    if (g.black) return g;
-    const leftCover = isBlack(midi - 1) ? half : 0;
-    const rightCover = isBlack(midi + 1) ? half : 0;
-    return { x: g.x + leftCover, w: g.w - leftCover - rightCover, black: false };
-  };
-
-  return { width, height, hitLineY, keyboardH, minMidi, maxMidi, whiteW, pxPerTick, keyGeom, noteGeom };
+  return { width, height, hitLineY, keyboardH, minMidi, maxMidi, whiteW, pxPerTick, keyGeom };
 }
 
 export function drawFalling(
@@ -122,11 +111,13 @@ export function drawFalling(
     const drawTop = Math.max(top, 0);
     if (drawBottom - drawTop < 1) continue;
 
-    const g = layout.noteGeom(note.midi);
+    const muted = state.mutedVoices?.has(note.voiceKey) ?? false;
+    const g = layout.keyGeom(note.midi);
     roundRect(ctx, g.x + 1, drawTop, Math.max(2, g.w - 2), drawBottom - drawTop, 3);
+    ctx.globalAlpha = muted ? 0.25 : 1;
     ctx.fillStyle = colors.get(note.voiceKey) ?? VOICE_COLORS[0];
     ctx.fill();
-    if (state.targetIds.has(note.id)) {
+    if (!muted && state.targetIds.has(note.id)) {
       ctx.strokeStyle = COLORS.target;
       ctx.lineWidth = 2.5;
     } else {
@@ -134,6 +125,7 @@ export function drawFalling(
       ctx.lineWidth = 1;
     }
     ctx.stroke();
+    ctx.globalAlpha = 1;
   }
 
   // "Now" line.

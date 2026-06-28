@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseScore, type Issue } from "music-json";
 import { flattenScore, type FlatScore } from "./model/flatten";
 import { buildSteps, chordMatched, type Step } from "./model/steps";
+import { buildVoiceColorMap } from "./grid/render";
 import { Player } from "./audio/player";
 import { MidiManager, KeyboardInput, midiSupported, type MidiInputInfo } from "./midi/midi";
 import type { SceneState } from "./grid/render";
@@ -45,6 +46,7 @@ export default function App() {
   const [referenceOn, setReferenceOn] = useState(true);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
+  const [disabledVoices, setDisabledVoices] = useState<Set<string>>(new Set());
 
   const [devices, setDevices] = useState<MidiInputInfo[]>([]);
   const [deviceId, setDeviceId] = useState<string | null>(null);
@@ -57,14 +59,30 @@ export default function App() {
   const stepsRef = useRef<Step[]>([]);
   const modeRef = useRef(mode);
   const runningRef = useRef(running);
+  const disabledRef = useRef(disabledVoices);
   modeRef.current = mode;
   runningRef.current = running;
+  disabledRef.current = disabledVoices;
 
-  const steps = useMemo(() => (flat ? buildSteps(flat) : []), [flat]);
+  const steps = useMemo(
+    () => (flat ? buildSteps(flat, disabledVoices) : []),
+    [flat, disabledVoices],
+  );
   useEffect(() => {
     stepsRef.current = steps;
     stepRef.current = 0;
+    // Re-sync progress when the step list changes mid-practice (e.g. a voice was
+    // toggled), since wait-mode practice restarts from the first step.
+    if (runningRef.current && modeRef.current === "wait") {
+      setProgress({ current: 0, total: steps.length });
+    }
   }, [steps]);
+
+  // Voice color map for the toolbar's per-voice toggles (matches the canvas).
+  const voiceColors = useMemo(
+    () => (flat ? buildVoiceColorMap(flat.voiceKeys) : new Map<string, string>()),
+    [flat],
+  );
 
   // ── Input ────────────────────────────────────────────────────────────────
   const handleNote = useCallback((midiNote: number, _vel: number, on: boolean) => {
@@ -131,7 +149,12 @@ export default function App() {
       const list = stepsRef.current;
       const step = list[stepRef.current];
       const tick = step ? step.tick : list.length ? list[list.length - 1].tick : 0;
-      return { playheadTick: tick, heldMidi: held, targetIds: new Set(step ? step.noteIds : []) };
+      return {
+        playheadTick: tick,
+        heldMidi: held,
+        targetIds: new Set(step ? step.noteIds : []),
+        mutedVoices: disabledRef.current,
+      };
     }
     return { playheadTick: player.currentTick(), heldMidi: held, targetIds: new Set() };
   }, [player]);
@@ -163,6 +186,15 @@ export default function App() {
     else start();
   }, [running, stop, start]);
 
+  const toggleVoice = useCallback((key: string) => {
+    setDisabledVoices((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
   const changeMode = useCallback(
     (m: Mode) => {
       if (running) stop();
@@ -180,6 +212,7 @@ export default function App() {
       pressedRef.current.clear();
       stepRef.current = 0;
       setProgress(null);
+      setDisabledVoices(new Set());
       const result = parseScore(text);
       setErrors(result.errors);
       setWarnings(result.warnings);
@@ -219,6 +252,10 @@ export default function App() {
         onTempo={setTempoPct}
         referenceOn={referenceOn}
         onReference={setReferenceOn}
+        voices={flat?.voices ?? []}
+        voiceColors={voiceColors}
+        disabledVoices={disabledVoices}
+        onToggleVoice={toggleVoice}
         progress={progress}
       />
 

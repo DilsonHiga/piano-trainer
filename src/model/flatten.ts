@@ -24,6 +24,12 @@ export interface MeasureMark {
   bpm: number;
 }
 
+/** A distinct voice (part.staff.voice) with a human-friendly label for the UI. */
+export interface VoiceInfo {
+  key: string;
+  label: string;
+}
+
 export interface FlatScore {
   divisions: number;
   notes: PlacedNote[];
@@ -32,6 +38,7 @@ export interface FlatScore {
   minMidi: number;
   maxMidi: number;
   voiceKeys: string[];
+  voices: VoiceInfo[];
 }
 
 const DEFAULT_TIME: TimeSignature = { beats: 4, beatType: 4 };
@@ -61,6 +68,7 @@ export function flattenScore(score: Score): FlatScore {
 
   const notes: PlacedNote[] = [];
   const voiceKeys: string[] = [];
+  const voiceParts = new Map<string, { part: string; staff: string; voice: string }>();
   const seen = new Set<string>();
   let minMidi = Infinity;
   let maxMidi = -Infinity;
@@ -75,6 +83,11 @@ export function flattenScore(score: Score): FlatScore {
           if (!seen.has(voiceKey)) {
             seen.add(voiceKey);
             voiceKeys.push(voiceKey);
+            voiceParts.set(voiceKey, {
+              part: part.name ?? part.id,
+              staff: staff.id,
+              voice: voice.id,
+            });
           }
           let t = base;
           for (const ev of voice.events) {
@@ -103,5 +116,31 @@ export function flattenScore(score: Score): FlatScore {
     maxMidi = 72;
   }
 
-  return { divisions, notes, measures, totalTicks, minMidi, maxMidi, voiceKeys };
+  const voices = buildVoiceLabels(voiceKeys, voiceParts);
+
+  return { divisions, notes, measures, totalTicks, minMidi, maxMidi, voiceKeys, voices };
+}
+
+/**
+ * Friendly labels for each voice: just the staff id when that's unambiguous,
+ * disambiguated with the part name (multiple parts) and/or voice id (multiple
+ * voices share a staff) only where needed.
+ */
+function buildVoiceLabels(
+  voiceKeys: string[],
+  parts: Map<string, { part: string; staff: string; voice: string }>,
+): VoiceInfo[] {
+  const distinctParts = new Set([...parts.values()].map((p) => p.part)).size;
+  const voicesPerStaff = new Map<string, number>();
+  for (const p of parts.values()) {
+    const k = `${p.part}.${p.staff}`;
+    voicesPerStaff.set(k, (voicesPerStaff.get(k) ?? 0) + 1);
+  }
+  return voiceKeys.map((key) => {
+    const p = parts.get(key)!;
+    let label = p.staff;
+    if (distinctParts > 1) label = `${p.part} · ${label}`;
+    if ((voicesPerStaff.get(`${p.part}.${p.staff}`) ?? 1) > 1) label = `${label} ${p.voice}`;
+    return { key, label };
+  });
 }

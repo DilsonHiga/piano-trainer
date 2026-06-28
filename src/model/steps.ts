@@ -14,9 +14,15 @@ export interface Step {
   noteIds: string[];
 }
 
-export function buildSteps(flat: FlatScore): Step[] {
+/**
+ * Build the practice steps. Notes whose voice is in `disabledVoices` are left
+ * out, so disabled voices are neither required to advance nor highlighted as
+ * targets; ticks that end up empty produce no step.
+ */
+export function buildSteps(flat: FlatScore, disabledVoices?: Set<string>): Step[] {
   const byTick = new Map<number, { midis: Set<number>; ids: string[] }>();
   for (const n of flat.notes) {
+    if (disabledVoices?.has(n.voiceKey)) continue;
     const g = byTick.get(n.startTick) ?? { midis: new Set<number>(), ids: [] };
     g.midis.add(n.midi);
     g.ids.push(n.id);
