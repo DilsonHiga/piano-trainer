@@ -12,10 +12,38 @@ function midiToFreq(midi: number): number {
   return 440 * Math.pow(2, (midi - 69) / 12);
 }
 
+/**
+ * Per-note peak amplitude, compensated for pitch. The ear is much less
+ * sensitive to low frequencies (equal-loudness contours) and a triangle wave
+ * has almost no harmonic content to help small speakers, so bass notes sound
+ * far quieter than treble at equal gain. Boost ~0.5 dB per semitone below
+ * middle C, capped at +10 dB (~3.2×), so low notes become audible.
+ */
+function peakForMidi(midi: number, base: number): number {
+  const semisBelowMiddleC = Math.max(0, 60 - midi);
+  const boostDb = Math.min(10, semisBelowMiddleC * 0.5);
+  return base * Math.pow(10, boostDb / 20);
+}
+
+/**
+ * Harmonic amplitudes for the voice. A bare triangle is nearly a pure tone and
+ * sounds thin; adding a falling series of harmonics (index n = n-th harmonic)
+ * gives body. The gentle rolloff keeps it warm rather than buzzy. The wave is
+ * normalized by the Web Audio API, so peak amplitude stays comparable.
+ */
+const HARMONICS = [0, 1, 0.6, 0.4, 0.28, 0.2, 0.14, 0.1, 0.07, 0.05];
+
+function buildVoice(ctx: AudioContext): PeriodicWave {
+  const imag = new Float32Array(HARMONICS);
+  const real = new Float32Array(HARMONICS.length);
+  return ctx.createPeriodicWave(real, imag);
+}
+
 interface ScheduledNote {
   startSec: number;
   durSec: number;
   freq: number;
+  peak: number;
 }
 
 interface MeasureTiming {
@@ -55,7 +83,12 @@ export class Player {
     this.scheduled = flat.notes.map((n) => {
       const startSec = this.tickToSec(n.startTick);
       const endSec = this.tickToSec(n.startTick + n.durTick);
-      return { startSec, durSec: Math.max(0.03, endSec - startSec), freq: midiToFreq(n.midi) };
+      return {
+        startSec,
+        durSec: Math.max(0.03, endSec - startSec),
+        freq: midiToFreq(n.midi),
+        peak: peakForMidi(n.midi, 0.22),
+      };
     });
   }
 
@@ -87,20 +120,26 @@ export class Player {
     this.ctx = ctx;
     this.master = ctx.createGain();
     this.master.gain.value = 0.6;
-    this.master.connect(ctx.destination);
+    // Gentle low-pass tames the upper harmonics so the richer voice stays warm.
+    const lowpass = ctx.createBiquadFilter();
+    lowpass.type = "lowpass";
+    lowpass.frequency.value = 4500;
+    lowpass.Q.value = 0.7;
+    this.master.connect(lowpass).connect(ctx.destination);
 
     const t0 = ctx.currentTime + 0.05;
     this.startTime = t0;
 
     if (withSound) {
+      const voice = buildVoice(ctx);
       for (const note of this.scheduled) {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = "triangle";
+        osc.setPeriodicWave(voice);
         osc.frequency.value = note.freq;
         const start = t0 + note.startSec;
         const end = start + note.durSec;
-        const peak = 0.22;
+        const peak = note.peak;
         gain.gain.setValueAtTime(0, start);
         gain.gain.linearRampToValueAtTime(peak, start + 0.008);
         gain.gain.setValueAtTime(peak, Math.max(start + 0.008, end - 0.05));
