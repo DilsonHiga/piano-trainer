@@ -42,6 +42,7 @@ export default function App() {
   const [tempoPct, setTempoPct] = useState(100);
   const [referenceOn, setReferenceOn] = useState(true);
   const [metronomeOn, setMetronomeOn] = useState(false);
+  const [repeatOn, setRepeatOn] = useState(true);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
   const [disabledVoices, setDisabledVoices] = useState<Set<string>>(new Set());
@@ -58,9 +59,15 @@ export default function App() {
   const modeRef = useRef(mode);
   const runningRef = useRef(running);
   const disabledRef = useRef(disabledVoices);
+  const repeatRef = useRef(repeatOn);
+  const referenceRef = useRef(referenceOn);
+  const metronomeRef = useRef(metronomeOn);
   modeRef.current = mode;
   runningRef.current = running;
   disabledRef.current = disabledVoices;
+  repeatRef.current = repeatOn;
+  referenceRef.current = referenceOn;
+  metronomeRef.current = metronomeOn;
 
   const steps = useMemo(
     () => (flat ? buildSteps(flat, disabledVoices) : []),
@@ -173,7 +180,15 @@ export default function App() {
       setRunning(true);
     } else {
       player.load(flat, tempoPct / 100);
-      player.onEnded = () => setRunning(false);
+      // On natural end, loop from the top (count-in only on the first pass)
+      // while Repeat is on; Stop always wins because it clears the end timer.
+      player.onEnded = () => {
+        if (repeatRef.current) {
+          player.play(referenceRef.current, { metronome: metronomeRef.current, countIn: false });
+        } else {
+          setRunning(false);
+        }
+      };
       player.play(referenceOn, { metronome: metronomeOn, countIn: metronomeOn });
       setRunning(true);
     }
@@ -285,6 +300,8 @@ export default function App() {
         onReference={setReferenceOn}
         metronomeOn={metronomeOn}
         onMetronome={setMetronomeOn}
+        repeatOn={repeatOn}
+        onRepeat={setRepeatOn}
         voices={flat?.voices ?? []}
         voiceColors={voiceColors}
         disabledVoices={disabledVoices}
