@@ -6,6 +6,6 @@ export default defineConfig({
   // Pre-bundle the locally-linked music-json (and its ajv dep), which Vite
   // skips for linked packages by default.
   optimizeDeps: {
-    include: ["music-json"],
+    include: ["music-json", "music-roll"],
   },
 });

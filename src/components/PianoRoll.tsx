@@ -5,9 +5,15 @@
  * Auto-scrolls horizontally to keep the playhead in view.
  */
 import { useEffect, useMemo, useRef } from "react";
-import type { FlatScore } from "../model/flatten";
-import { makeLayout } from "../grid/layout";
-import { buildVoiceColorMap, drawScene, drawKeyboard, KEYBOARD_WIDTH, type SceneState } from "../grid/render";
+import {
+  makeLayout,
+  buildVoiceColorMap,
+  drawScene,
+  drawKeyboard,
+  KEYBOARD_WIDTH,
+  type FlatScore,
+  type SceneState,
+} from "music-roll";
 
 interface Props {
   flat: FlatScore;
@@ -19,7 +25,7 @@ export function PianoRoll({ flat, getState }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const kbRef = useRef<HTMLCanvasElement>(null);
 
-  const layout = useMemo(() => makeLayout(flat), [flat]);
+  const layout = useMemo(() => makeLayout(flat, { colW: 24 }), [flat]);
   const colors = useMemo(() => buildVoiceColorMap(flat.voiceKeys), [flat.voiceKeys]);
 
   // Size both canvases for the device pixel ratio.
@@ -64,7 +70,7 @@ export function PianoRoll({ flat, getState }: Props) {
       const kctx = kbRef.current?.getContext("2d");
       if (kctx) {
         kctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        drawKeyboard(kctx, layout, state.heldMidi);
+        drawKeyboard(kctx, layout, state.heldMidi ?? new Set());
       }
       if (kbRef.current && scrollRef.current) {
         kbRef.current.style.transform = `translateY(${-scrollRef.current.scrollTop}px)`;

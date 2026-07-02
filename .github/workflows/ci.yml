@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      # This app depends on the sibling repos via file:../music-json-spec and
+      # file:../music-roll, so check all three out side by side. Assumes the
+      # siblings live under the same owner with their directory names as repo
+      # names.
+      - uses: actions/checkout@v4
+        with:
+          path: piano-trainer
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/music-json-spec
+          path: music-json-spec
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/music-roll
+          path: music-roll
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - working-directory: piano-trainer
+        run: npm install
+      - working-directory: piano-trainer
+        run: npm test
+      - working-directory: piano-trainer
+        run: npm run build

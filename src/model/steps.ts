@@ -4,7 +4,7 @@
  * same tick — so chords and simultaneous parts become a single key-combination
  * to play before advancing.
  */
-import type { FlatScore } from "./flatten";
+import type { FlatScore } from "music-roll";
 
 export interface Step {
   tick: number;

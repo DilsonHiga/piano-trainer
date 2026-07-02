@@ -6,7 +6,7 @@
 import { useRef } from "react";
 import type { Issue } from "music-json";
 import type { MidiInputInfo } from "../midi/midi";
-import type { VoiceInfo } from "../model/flatten";
+import type { VoiceInfo } from "music-roll";
 
 export type Mode = "play" | "wait";
 export type InputSource = "midi" | "keyboard";

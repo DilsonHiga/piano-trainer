@@ -12,20 +12,17 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseScore, type Issue } from "music-json";
-import { flattenScore, type FlatScore } from "./model/flatten";
+import { flattenScore, buildVoiceColorMap, Player, type FlatScore, type SceneState } from "music-roll";
 import { buildSteps, chordMatched, type Step } from "./model/steps";
-import { buildVoiceColorMap } from "./grid/render";
-import { Player } from "./audio/player";
 import { MidiManager, KeyboardInput, midiSupported, type MidiInputInfo } from "./midi/midi";
-import type { SceneState } from "./grid/render";
 import { Toolbar, type Mode, type InputSource, type View } from "./components/Toolbar";
 import { PianoRoll } from "./components/PianoRoll";
 import { FallingNotes } from "./components/FallingNotes";
-import twinkleSample from "./samples/twinkle.music.json";
+import twinkleSample from "music-roll/samples/twinkle.music.json";
 
 export default function App() {
   const playerRef = useRef<Player | null>(null);
-  if (!playerRef.current) playerRef.current = new Player();
+  if (!playerRef.current) playerRef.current = new Player({ basePeak: 0.22 });
   const player = playerRef.current;
 
   const midiRef = useRef<MidiManager | null>(null);

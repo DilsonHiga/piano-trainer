@@ -8,13 +8,9 @@
  *     line (highlighted as the target) until the right keys are held.
  */
 import { midiToPitch } from "music-json";
-import type { FlatScore } from "../model/flatten";
-import { VOICE_COLORS, type SceneState } from "./render";
+import { VOICE_COLORS, isBlack, roundRect, type FlatScore, type SceneState } from "music-roll";
 
-export { buildVoiceColorMap } from "./render";
-
-const BLACK_PCS = new Set([1, 3, 6, 8, 10]);
-const isBlack = (m: number) => BLACK_PCS.has(((m % 12) + 12) % 12);
+export { buildVoiceColorMap } from "music-roll";
 
 const COLORS = {
   bg: "#10151d",
@@ -84,6 +80,8 @@ export function drawFalling(
 ): void {
   const { width, height, hitLineY } = layout;
   const ph = state.playheadTick ?? 0;
+  const targetIds = state.targetIds ?? new Set<string>();
+  const heldMidi = state.heldMidi ?? new Set<number>();
 
   ctx.fillStyle = COLORS.bg;
   ctx.fillRect(0, 0, width, height);
@@ -98,8 +96,8 @@ export function drawFalling(
 
   // Target pitches (wait mode) for keyboard highlighting.
   const targetMidi = new Set<number>();
-  if (state.targetIds.size) {
-    for (const note of flat.notes) if (state.targetIds.has(note.id)) targetMidi.add(note.midi);
+  if (targetIds.size) {
+    for (const note of flat.notes) if (targetIds.has(note.id)) targetMidi.add(note.midi);
   }
 
   // Falling notes.
@@ -117,7 +115,7 @@ export function drawFalling(
     ctx.globalAlpha = muted ? 0.25 : 1;
     ctx.fillStyle = colors.get(note.voiceKey) ?? VOICE_COLORS[0];
     ctx.fill();
-    if (!muted && state.targetIds.has(note.id)) {
+    if (!muted && targetIds.has(note.id)) {
       ctx.strokeStyle = COLORS.target;
       ctx.lineWidth = 2.5;
     } else {
@@ -136,7 +134,7 @@ export function drawFalling(
   ctx.lineTo(width, hitLineY + 0.5);
   ctx.stroke();
 
-  drawKeyboard(ctx, layout, state.heldMidi, targetMidi);
+  drawKeyboard(ctx, layout, heldMidi, targetMidi);
 }
 
 function keyFill(held: boolean, target: boolean, base: string): string {
@@ -180,22 +178,4 @@ function drawKeyboard(
     ctx.fillStyle = keyFill(held.has(m), target.has(m), COLORS.keyBlack);
     ctx.fillRect(g.x, yTop, g.w, blackH);
   }
-}
-
-function roundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-): void {
-  const radius = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.arcTo(x + w, y, x + w, y + h, radius);
-  ctx.arcTo(x + w, y + h, x, y + h, radius);
-  ctx.arcTo(x, y + h, x, y, radius);
-  ctx.arcTo(x, y, x + w, y, radius);
-  ctx.closePath();
 }

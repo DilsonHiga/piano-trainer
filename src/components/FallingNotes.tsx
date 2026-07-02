@@ -4,8 +4,7 @@
  * via `getState` — identical to the piano-roll view, so both practice modes work.
  */
 import { useEffect, useMemo, useRef } from "react";
-import type { FlatScore } from "../model/flatten";
-import type { SceneState } from "../grid/render";
+import type { FlatScore, SceneState } from "music-roll";
 import { buildVoiceColorMap, makeFallingLayout, drawFalling } from "../grid/falling";
 
 interface Props {

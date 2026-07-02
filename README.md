@@ -37,17 +37,17 @@ npm run typecheck
 
 | Module | Responsibility |
 |--------|----------------|
-| `src/model/flatten.ts` | `Score` → absolute-tick notes (with ids) + measure/tempo timeline |
 | `src/model/steps.ts` | Group notes by onset into practice steps (chords = one key combo) |
 | `src/midi/midi.ts` | Web MIDI input manager + computer-keyboard fallback |
-| `src/audio/player.ts` | Reference playback + transport clock, tempo-scaled |
-| `src/grid/{layout,render}.ts` | Piano-roll geometry + canvas drawing (held keys, targets, playhead) |
+| `src/grid/falling.ts` | Synthesia-style falling-notes renderer (horizontal keyboard) |
 | `src/components/PianoRoll.tsx` | Canvas with a continuous render loop + auto-scroll |
 | `src/components/Toolbar.tsx` | File, input source, mode, tempo, transport |
 | `src/App.tsx` | Practice engine: input → held/pressed sets → mode logic |
 
-Parsing/validation and pitch math come from the `music-json` library — the
-trainer never re-implements the format.
+Parsing/validation and pitch math come from the `music-json` library; score
+flattening, grid geometry, roll rendering, and the tempo-scaled playback/
+transport clock come from the shared `music-roll` package (also used by the
+editor) — the trainer never re-implements the format or the roll engine.
 
 ## Next steps
 
