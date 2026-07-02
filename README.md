@@ -12,18 +12,27 @@ the **Web MIDI API** and visualizes practice on a horizontal piano roll.
 
 ## Run
 
-Build the sibling `music-json` library first (local `file:` dependency):
-
 ```bash
-npm --prefix ../music-json-spec install
-npm --prefix ../music-json-spec run build
-
-npm install
+npm install      # also builds the sibling file: packages (music-json, music-roll)
 npm run dev      # http://localhost:5173
 ```
 
 Then: **Load sample** → choose **MIDI** + **Connect** (or **Computer keys**) →
 pick a **mode** → **▶ Start**.
+
+### Local sheet library
+
+Point `SHEETS_DIR` at a directory of `.music.json` files (searched
+recursively) and a **Library…** dropdown appears in the toolbar — no more
+re-uploading files on every reload:
+
+```bash
+# .env.local (gitignored) or shell env
+SHEETS_DIR=/home/dhiga/Músicas/sheets/
+```
+
+The dev/preview server exposes it as `GET /api/sheets` (list) and
+`GET /api/sheets/<path>` (file), confined to that directory.
 
 - **Web MIDI** needs Chrome or Edge (Firefox/Safari don't support it). If
   unavailable, use **Computer keys**: `A`–`K` play C4–D5, `Z`/`X` shift octave.

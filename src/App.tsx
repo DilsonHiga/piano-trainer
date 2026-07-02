@@ -222,6 +222,36 @@ export default function App() {
     openText("twinkle.music.json", JSON.stringify(twinkleSample));
   }, [openText]);
 
+  // Local sheet library, served by the dev/preview server when SHEETS_DIR is
+  // set (see vite.config.ts). Absent/failing endpoint → no library UI.
+  const [sheets, setSheets] = useState<string[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/sheets")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list: string[]) => {
+        if (!cancelled && Array.isArray(list)) setSheets(list);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const openSheet = useCallback(
+    async (rel: string) => {
+      const url = "/api/sheets/" + rel.split("/").map(encodeURIComponent).join("/");
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        openText(rel.split("/").pop() ?? rel, await res.text());
+      } catch (e) {
+        setErrors([{ path: rel, message: `could not load from library: ${(e as Error).message}` }]);
+      }
+    },
+    [openText],
+  );
+
   return (
     <div className="app">
       <Toolbar
@@ -232,6 +262,8 @@ export default function App() {
         running={running}
         onOpenText={openText}
         onLoadSample={loadSample}
+        sheets={sheets}
+        onOpenSheet={openSheet}
         onTogglePlay={togglePlay}
         inputSource={inputSource}
         onInputSource={setInputSource}

@@ -7,3 +7,7 @@ dist/
 *.swp
 .idea/
 .vscode/
+
+# Local environment (machine-specific paths like SHEETS_DIR)
+.env.local
+.env.*.local

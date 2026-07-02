@@ -67,6 +67,12 @@ body {
   font: inherit;
 }
 
+/* Library dropdown sizes to its longest entry — cap it. */
+.toolbar select.sheets {
+  max-width: 240px;
+  text-overflow: ellipsis;
+}
+
 .toolbar button:hover:not(:disabled),
 .toolbar select:hover {
   border-color: var(--accent);

@@ -20,6 +20,9 @@ interface Props {
   running: boolean;
   onOpenText: (name: string, text: string) => void;
   onLoadSample: () => void;
+  /** Relative paths of *.music.json files in the local library (SHEETS_DIR). */
+  sheets: string[];
+  onOpenSheet: (rel: string) => void;
   onTogglePlay: () => void;
 
   inputSource: InputSource;
@@ -48,6 +51,11 @@ interface Props {
   progress: { current: number; total: number } | null;
 }
 
+/** Display label for a library entry: path without the .music.json suffix. */
+function sheetLabel(rel: string): string {
+  return rel.replace(/\.music\.json$/, "");
+}
+
 export function Toolbar(p: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -62,6 +70,25 @@ export function Toolbar(p: Props) {
     <header className="toolbar">
       <div className="toolbar-row">
         <strong className="brand">piano trainer</strong>
+        {p.sheets.length > 0 && (
+          <select
+            className="sheets"
+            value=""
+            onChange={(e) => {
+              if (e.target.value) p.onOpenSheet(e.target.value);
+            }}
+            title="Sheets from your local library (SHEETS_DIR)"
+          >
+            <option value="" disabled>
+              Library…
+            </option>
+            {p.sheets.map((s) => (
+              <option key={s} value={s}>
+                {sheetLabel(s)}
+              </option>
+            ))}
+          </select>
+        )}
         <button onClick={() => fileInput.current?.click()}>Open…</button>
         <button onClick={p.onLoadSample}>Load sample</button>
         <input ref={fileInput} type="file" accept=".json,.music.json,application/json" onChange={handleFile} hidden />
