@@ -149,6 +149,22 @@ export function drawFalling(
     ctx.globalAlpha = 1;
   }
 
+  // Fingering numbers at the leading (bottom) edge of annotated notes.
+  ctx.font = "bold 10px ui-monospace, monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.fillStyle = "rgba(0,0,0,0.75)";
+  for (const note of flat.notes) {
+    if (note.finger == null) continue;
+    if (state.mutedVoices?.has(note.voiceKey)) continue;
+    const bottom = hitLineY - (note.startTick - ph) * layout.pxPerTick;
+    const top = bottom - note.durTick * layout.pxPerTick;
+    if (top >= hitLineY || bottom <= 0 || bottom - top < 14) continue;
+    const g = layout.keyGeom(note.midi);
+    ctx.fillText(String(note.finger), g.x + g.w / 2, Math.min(bottom, hitLineY) - 3);
+  }
+  ctx.textAlign = "left";
+
   // "Now" line.
   ctx.strokeStyle = COLORS.hitLine;
   ctx.lineWidth = 2;
