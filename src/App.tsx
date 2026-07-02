@@ -41,6 +41,7 @@ export default function App() {
   const [inputSource, setInputSource] = useState<InputSource>(supported ? "midi" : "keyboard");
   const [tempoPct, setTempoPct] = useState(100);
   const [referenceOn, setReferenceOn] = useState(true);
+  const [metronomeOn, setMetronomeOn] = useState(false);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
   const [disabledVoices, setDisabledVoices] = useState<Set<string>>(new Set());
@@ -173,10 +174,10 @@ export default function App() {
     } else {
       player.load(flat, tempoPct / 100);
       player.onEnded = () => setRunning(false);
-      player.play(referenceOn);
+      player.play(referenceOn, { metronome: metronomeOn, countIn: metronomeOn });
       setRunning(true);
     }
-  }, [flat, mode, tempoPct, referenceOn, player]);
+  }, [flat, mode, tempoPct, referenceOn, metronomeOn, player]);
 
   const togglePlay = useCallback(() => {
     if (running) stop();
@@ -213,7 +214,8 @@ export default function App() {
       const result = parseScore(text);
       setErrors(result.errors);
       setWarnings(result.warnings);
-      setFlat(result.ok && result.score ? flattenScore(result.score) : null);
+      // mergeTies: a tied note is struck once — don't ask for (or draw) a re-hit.
+      setFlat(result.ok && result.score ? flattenScore(result.score, { mergeTies: true }) : null);
     },
     [stop],
   );
@@ -281,6 +283,8 @@ export default function App() {
         onTempo={setTempoPct}
         referenceOn={referenceOn}
         onReference={setReferenceOn}
+        metronomeOn={metronomeOn}
+        onMetronome={setMetronomeOn}
         voices={flat?.voices ?? []}
         voiceColors={voiceColors}
         disabledVoices={disabledVoices}

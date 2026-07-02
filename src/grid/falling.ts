@@ -15,6 +15,8 @@ export { buildVoiceColorMap } from "music-roll";
 const COLORS = {
   bg: "#10151d",
   laneBlack: "#080a0e",
+  measureLine: "rgba(91, 107, 125, 0.45)",
+  measureLabel: "#5a6675",
   hitLine: "#ff4d4d",
   noteStroke: "rgba(0,0,0,0.45)",
   target: "#ffd60a",
@@ -92,6 +94,27 @@ export function drawFalling(
     if (!isBlack(m)) continue;
     const g = layout.keyGeom(m);
     ctx.fillRect(g.x, 0, g.w, hitLineY);
+  }
+
+  // Measure lines fall with the notes (drawn above lanes, below notes).
+  ctx.strokeStyle = COLORS.measureLine;
+  ctx.lineWidth = 1;
+  ctx.font = "10px ui-monospace, monospace";
+  ctx.textBaseline = "bottom";
+  const barTicks = [...flat.measures.map((m) => m.startTick), flat.totalTicks];
+  for (const tick of barTicks) {
+    const y = hitLineY - (tick - ph) * layout.pxPerTick;
+    if (y < 0 || y > hitLineY) continue;
+    const ly = Math.round(y) + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(0, ly);
+    ctx.lineTo(width, ly);
+    ctx.stroke();
+    const index = flat.measures.findIndex((m) => m.startTick === tick);
+    if (index >= 0) {
+      ctx.fillStyle = COLORS.measureLabel;
+      ctx.fillText(String(index + 1), 4, ly - 2);
+    }
   }
 
   // Target pitches (wait mode) for keyboard highlighting.

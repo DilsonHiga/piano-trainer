@@ -42,6 +42,8 @@ interface Props {
   onTempo: (pct: number) => void;
   referenceOn: boolean;
   onReference: (on: boolean) => void;
+  metronomeOn: boolean;
+  onMetronome: (on: boolean) => void;
 
   voices: VoiceInfo[];
   voiceColors: Map<string, string>;
@@ -185,6 +187,10 @@ export function Toolbar(p: Props) {
             <label className="ref">
               <input type="checkbox" checked={p.referenceOn} onChange={(e) => p.onReference(e.target.checked)} />
               Reference sound
+            </label>
+            <label className="ref" title="Beat clicks with a one-measure count-in">
+              <input type="checkbox" checked={p.metronomeOn} onChange={(e) => p.onMetronome(e.target.checked)} />
+              Metronome
             </label>
           </>
         )}
